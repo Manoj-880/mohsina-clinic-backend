@@ -1,29 +1,38 @@
 const documentRepo = require("../repos/documentRepo");
-const cloudinary = require("../utilities/cloudinary");
+const fs = require("fs");
+const path = require("path");
 
 const getAllDocuments = async (req, res) => {
     try {
         const documents = await documentRepo.getAllDocuments();
-        if(documents) {
-            res.status(200).send({
-                success: true,
-                message: "Documents retrieved successfully",
-                data: documents
-            });
-        } else {
-            res.status(404).send({
-                success: false,
-                message: "No documents found"
-            });
-        }
+        const fullHost = `${req.protocol}://${req.get('host')}`;
+
+        const docsWithUrls = documents.map(doc => {
+            const isCloudinaryUrl = doc.cloudinaryUrl.startsWith('http');
+
+            return {
+                ...doc._doc,
+                fileUrl: isCloudinaryUrl
+                    ? doc.cloudinaryUrl
+                    : `${fullHost}/${doc.cloudinaryUrl}`
+            };
+        });
+
+        res.status(200).send({
+            success: true,
+            message: "Documents retrieved successfully",
+            data: docsWithUrls
+        });
+
     } catch (error) {
         console.log(error);
         res.status(500).send({
             success: false,
             message: "Internal server error",
         });
-    };
+    }
 };
+
 
 const addDocument = async (req, res) => {
     try {
@@ -46,8 +55,6 @@ const addDocument = async (req, res) => {
             cloudinaryPublicId,
             uploadedAt: new Date()
         };
-
-        console.log(documentData);
 
         const addedDocument = await documentRepo.addDocument(documentData);
 
@@ -76,7 +83,22 @@ const deleteDocument = async (req, res) => {
     try {
         const file = await documentRepo.getDocumentById(req.params.id);
 
-        await cloudinary.uploader.destroy(file.cloudinaryPublicId, {resource_type: "raw"});
+        if (!file) {
+            return res.status(404).send({
+                success: false,
+                message: "Document not found"
+            });
+        }
+
+        // Construct full file path if it's a local file
+        const filePath = path.join(__dirname, '../uploads', path.basename(file.cloudinaryUrl));
+
+        // Delete the local file if it exists
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath); // or use fs.promises.unlink for async
+        }
+
+        // Delete the DB entry
         await documentRepo.deleteDocument(req.params.id);
 
         res.status(200).send({
@@ -84,13 +106,13 @@ const deleteDocument = async (req, res) => {
             message: "Document deleted successfully"
         });
     } catch (error) {
-        console.log(error);
+        console.error("Error deleting document:", error);
         res.status(500).send({
             success: false,
             message: "Internal server error",
         });
     }
-}
+};
 
 
 module.exports = {

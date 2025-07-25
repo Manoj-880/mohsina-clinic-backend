@@ -10,6 +10,14 @@ const { default: mongoose } = require("mongoose");
 
 const app = express();
 app.use(cors());
+
+// ✅ Make /uploads/ folder publicly accessible
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ✅ Mount file upload routes BEFORE json/urlencoded
+const documentRoutes = require("./routes/documentRoute");
+app.use("/api/documents", verifyCall, documentRoutes);
+
 app.use(bodyParser.json());
 
 // Logging the API calls
@@ -31,21 +39,18 @@ app.get("/test", (req, res) => {
     res.send("Server running successfully");
 });
 
-// Importing routes
+// ✅ Keep remaining routes below bodyParser
 const patientRoutes = require("./routes/patientsRoutes");
 const doctorRoutes = require("./routes/doctorsRoute");
 const loginRoute = require("./routes/loginRoute");
 const followUpRoutes = require("./routes/followUpRoutes");
 const dashboardRoute = require("./routes/dashboardRoute");
-const documentRoutes = require("./routes/documentRoute");
 
-// Using routes
 app.use("/api/patients", verifyCall, patientRoutes);
 app.use("/api/doctors", verifyCall, doctorRoutes);
 app.use("/api/login", loginRoute);
 app.use("/api/followups", verifyCall, followUpRoutes);
 app.use("/api/dashboard", verifyCall, dashboardRoute);
-app.use("/api/documents", verifyCall, documentRoutes);
 
 const PORT = utils.PORT;
 app.listen(PORT, () => {

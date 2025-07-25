@@ -2,20 +2,19 @@ const documentController = require("../controllers/documentController");
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const {CloudinaryStorage} = require("multer-storage-cloudinary");
-const cloudinary = require("../utilities/cloudinary");
 
-const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-        folder: 'pdfs',
-        resource_type: 'auto',
-        format: async (req, file) => 'pdf',
-        public_id: (req, file) => `${Date.now()}-${file.originalname}`,
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/');
     },
+    filename: function (req, file, cb) {
+        // Keep original name or add timestamp if needed
+        cb(null, `${Date.now()}-${file.originalname}`);
+    }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
+
 
 router.get("/", documentController.getAllDocuments);
 router.post("/", upload.single("file"), documentController.addDocument);
