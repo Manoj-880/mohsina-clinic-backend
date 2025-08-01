@@ -1,6 +1,7 @@
 const utils = require("../utilities/constants");
 
 const verifyCall = (req, res, next) => {
+    // console.log(req.headers);
     const authHeader = req.headers.key;
     if (!authHeader) {
         return res.status(401).send({

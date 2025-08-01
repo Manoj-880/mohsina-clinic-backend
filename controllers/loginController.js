@@ -17,7 +17,7 @@ const login = async (req, res) => {
                 data: data
             });
         } else {
-            res.status(401).send({
+            res.status(200).send({
                 success: false,
                 message: "Invalid email or password",
             });

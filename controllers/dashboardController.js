@@ -4,52 +4,49 @@ const followUpRepo = require("../repos/patientFollowupRepo");
 const getDashboardData = async (req, res) => {
     try {
         const doctor = req.body.doctor;
-        let patients = await patientRepo.getPatientByDoctor(doctor);
-        let data = [];
+        const patients = await patientRepo.getPatientByDoctor(doctor);
+        const data = [];
+        const today = new Date().toISOString().split("T")[0];
 
         if (patients && patients.length > 0) {
-            const date = new Date().toISOString().split('T')[0];
+            for (const patient of patients) {
+                const followUps = await followUpRepo.getFollowupByPatientId(patient.patientId);
 
-            const patientData = await Promise.all(
-                patients.map(async (patient) => {
-                    const followUp = await followUpRepo.getFollowupByPatientId(patient.patientId);
-
-                    if (followUp && followUp.followUpDate === date) {
-                        return {
+                for (const followup of followUps) {
+                    if (followup && followup.followUpDate === today) {
+                        console.log(`Today's date: ${today}, FollowUp date: ${followup.followUpDate}`);
+                        data.push({
                             patientId: patient.patientId,
                             name: patient.name,
                             age: patient.age,
                             gender: patient.gender,
                             dateOfCase: patient.dateOfCase,
-                            lastVisites: followUp.lastVisitDate,
-                            lastVisitDescription: followUp.followupNotes,
-                            isNew: followUp.isFirstVisit,
+                            lastVisited: followup.lastVisitDate,
+                            lastVisitDescription: followup.followupNotes,
+                            isNew: followup.isFirstVisit,
                             mobileNumber: patient.mobileNumber,
-                            nextVisit: followUp.followUpDate
-                        };
+                            nextVisit: followup.followUpDate
+                        });
                     }
-                    return null;
-                })
-            );
+                }
+            }
 
-            data = patientData.filter(item => item !== null);
-
-            res.status(200).send({
+            return res.status(200).json({
                 success: true,
-                message: "patients fetched successfully",
-                data: data
+                message: "Patients fetched successfully",
+                data
             });
         } else {
-            res.status(404).send({
+            return res.status(404).json({
                 success: false,
                 message: "No patients found for this doctor",
             });
         }
     } catch (error) {
-        console.log(error);
-        res.status(500).send({
+        console.error(error);
+        return res.status(500).json({
             success: false,
-            message: "internal server error",
+            message: "Internal server error",
         });
     }
 };

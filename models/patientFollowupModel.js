@@ -16,7 +16,8 @@ const patientFollowupSchema = new Schema({
     },
     followupNotes: {
         type: String,
-        required: true,
+        // required: true,
+        default: "",
     },
     isFirstVisit: {
         type: Boolean,

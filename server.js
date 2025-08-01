@@ -9,7 +9,18 @@ const path = require("path");
 const { default: mongoose } = require("mongoose");
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: '*', // or '*' if dev-only
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'key'], // <-- include 'key'
+}));
+
+// Logging the API calls
+const filePath = path.join(__dirname, "logs", "request.log");
+const accessLogStream = fs.createWriteStream(filePath, { flags: 'a' });
+
+app.use(morgan(':method :url :status :res[content-length] :response-time ms', { stream: accessLogStream }));
+app.use(morgan(':method :url :status :res[content-length] :response-time ms'));
 
 // ✅ Make /uploads/ folder publicly accessible
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -19,13 +30,6 @@ const documentRoutes = require("./routes/documentRoute");
 app.use("/api/documents", verifyCall, documentRoutes);
 
 app.use(bodyParser.json());
-
-// Logging the API calls
-const filePath = path.join(__dirname, "logs", "request.log");
-const accessLogStream = fs.createWriteStream(filePath, { flags: 'a' });
-
-app.use(morgan(':method :url :status :res[content-length] :response-time ms', { stream: accessLogStream }));
-app.use(morgan(':method :url :status :res[content-length] :response-time ms'));
 
 app.use(express.static(path.join(__dirname, 'public')));
 

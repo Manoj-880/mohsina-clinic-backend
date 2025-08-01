@@ -5,11 +5,26 @@ const followUpRepo = require("../repos/patientFollowupRepo");
 const getAllPatients = async (req, res) => {
     try {
         let patients = await patientRepo.getAllPatients();
+        let data = [];
         if(patients) {
+            for (const patient of patients) {
+                const followup = await followUpRepo.getAllFollowupsByPatientId(patient.patientId); // ✅ Properly awaited
+                const isNew = followup[0].isNew;
+                data.push({
+                    patientId: patient.patientId,
+                    name: patient.name,
+                    mobileNumber: patient.mobileNumber,
+                    doctor: patient.doctor,
+                    dateOfCase: patient.dateOfCase,
+                    gender: patient.gender,
+                    age: patient.age,
+                    isNew: isNew,
+                });
+            }
             res.status(200).send({
                 success: true,
                 message: "Patients fetched successfully",
-                data: patients
+                data: data
             });
         } else {
             res.status(404).send({
@@ -31,6 +46,16 @@ const getPatientById = async (req, res) => {
         let id = req.params.id;
         let patient = await patientRepo.getPatientById(id);
         let healthRecord = await healthRepo.getHealthRecords(id);
+        let patientFollowups = await followUpRepo.getAllFollowupsByPatientId(id);
+        let followups = [];
+        patientFollowups.forEach((followup) => {
+            followups.push({
+                _id: followup._id,
+                followupDate: followup.followUpDate,
+                followupNotes: followup.followupNotes,
+            });
+        });
+        // console.log(patientFollowups);
         if(patient && healthRecord) {
             let data = {
                 priliminaryDetails: patient,
@@ -43,6 +68,7 @@ const getPatientById = async (req, res) => {
                 thermals: healthRecord[0].thermals,
                 diagnosis: healthRecord[0].diagnosis,
                 prescription: healthRecord[0].prescription,
+                followUps: followups,
             }
             res.status(200).send({
                 success: true,
@@ -104,6 +130,7 @@ const getPatientByMobileNumber = async (req, res) => {
 
 const addPatient = async (req, res) => {
     try {
+        console.log(req.body)
         let patient = await patientRepo.getAllPatients();
         let count = patient.length;
         let year = new Date().getFullYear();
@@ -130,7 +157,7 @@ const addPatient = async (req, res) => {
             patientId: patientId,
             lastVisitDate: date.toISOString().split("T")[0],
             followUpDate: date.toISOString().split("T")[0],
-            followupNotes: "First visit",
+            followupNotes: "",
             isFirstVisit: true,
         }
         // console.log(followupData);
@@ -198,7 +225,8 @@ const deletePatient = async (req, res) => {
         let patientId = req.params.id;
         let deletedPatient = await patientRepo.deletePatient(patientId);
         let deletedHealthRecord = await healthRepo.deleteHealthRecord(patientId);
-        if(deletedPatient && deletedHealthRecord) {
+        let deletePatientFollowups = await followUpRepo.deleteAllFollowupsByPatientId(patientId);
+        if(deletedPatient && deletedHealthRecord && deletePatientFollowups) {
             res.status(200).send({
                 success: true,
                 message: "Patient deleted successfully",

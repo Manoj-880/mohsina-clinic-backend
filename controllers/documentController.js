@@ -39,6 +39,8 @@ const addDocument = async (req, res) => {
         const file = req.file;
         const { title } = req.body;
 
+        console.log(req.body);
+
         if (!file || !title) {
             return res.status(400).send({
                 success: false,
