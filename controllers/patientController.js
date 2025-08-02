@@ -223,23 +223,29 @@ const updatePatient = async (req, res) => {
 const deletePatient = async (req, res) => {
     try {
         let patientId = req.params.id;
-        let deletedPatient = await patientRepo.deletePatient(patientId);
-        let deletedHealthRecord = await healthRepo.deleteHealthRecord(patientId);
-        let deletePatientFollowups = await followUpRepo.deleteAllFollowupsByPatientId(patientId);
-        if(deletedPatient && deletedHealthRecord && deletePatientFollowups) {
-            res.status(200).send({
-                success: true,
-                message: "Patient deleted successfully",
-            });
-        } else {
-            res.status(404).send({
+
+        const [deletedPatient, deletedHealthRecord, deletePatientFollowups] = await Promise.all([
+            patientRepo.deletePatient(patientId),
+            healthRepo.deleteHealthRecord(patientId),
+            followUpRepo.deleteAllFollowupsByPatientId(patientId)
+        ]);
+
+        // Only return 404 if all of them are falsy
+        if (!deletedPatient && !deletedHealthRecord && !deletePatientFollowups) {
+            return res.status(404).send({
                 success: false,
                 message: "Patient not found",
             });
         }
+
+        return res.status(200).send({
+            success: true,
+            message: "Patient deleted successfully",
+        });
+
     } catch (error) {
         console.log(error);
-        res.status(500).send({
+        return res.status(500).send({
             success: false,
             message: "internal server error",
         });

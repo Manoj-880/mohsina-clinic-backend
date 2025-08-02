@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const Schema = mongoose.Schema; 
+
+// license no
+// degree
 
 const doctorSchema = new Schema({
     name: {
@@ -19,6 +22,12 @@ const doctorSchema = new Schema({
     password: {
         type: String,
         required: true,
+    },
+    licenseNo: {
+        type: String,
+    },
+    degree: {
+        type: String,
     }
 });
 
